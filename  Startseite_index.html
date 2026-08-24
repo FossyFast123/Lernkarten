@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123b72">
+<title>Meine Lernkarten</title>
+<style>
+:root{--blue:#123b72;--accent:#2f73d9;--bg:#f4f7fb;--line:#d5dce5;--text:#17202a;--muted:#637080}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+header{background:var(--blue);color:#fff;padding:18px 20px;text-align:center}
+header h1{margin:0;font-size:25px} header p{margin:6px 0 0;font-size:14px;opacity:.9}
+main{max-width:760px;margin:0 auto;padding:24px 16px 35px}
+.intro{text-align:center;margin:4px 0 22px}.intro h2{margin:0 0 7px;font-size:22px}.intro p{margin:0;color:var(--muted);line-height:1.45}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.card{display:block;text-decoration:none;color:var(--text);background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 18px;box-shadow:0 2px 8px rgba(20,35,55,.06)}
+.card:active{transform:scale(.98)}
+.flag{font-size:43px;line-height:1;margin-bottom:13px}.card h3{margin:0 0 7px;font-size:21px}.card p{margin:0;color:var(--muted);line-height:1.4;font-size:14px}
+.button{display:inline-block;margin-top:17px;background:var(--accent);color:#fff;border-radius:10px;padding:10px 14px;font-weight:750;font-size:14px}
+.note{margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 15px;color:var(--muted);font-size:13px;line-height:1.45}
+@media(max-width:560px){.cards{grid-template-columns:1fr}.card{padding:20px}}
+</style>
+</head>
+<body>
+<header><h1>Meine Lernkarten</h1><p>Interaktives Lernen von Ländern, Staaten und Hauptstädten</p></header>
+<main>
+<section class="intro"><h2>Was möchtest du lernen?</h2><p>Wähle eine Lernkarte aus. Dein Lernfortschritt wird in der jeweiligen Karte gespeichert.</p></section>
+<section class="cards">
+<a class="card" href="usa/"><div class="flag">🇺🇸</div><h3>USA</h3><p>50 Bundesstaaten und ihre Hauptstädte</p><span class="button">Lernkarte öffnen</span></a>
+<a class="card" href="deutschland/"><div class="flag">🇩🇪</div><h3>Deutschland</h3><p>16 Bundesländer und ihre Hauptstädte</p><span class="button">Lernkarte öffnen</span></a>
+</section>
+<div class="note">Weitere Länder können später problemlos ergänzt werden. Jede Lernkarte liegt in einem eigenen Ordner und bleibt unabhängig von den anderen.</div>
+</main>
+</body>
+</html>
