@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123b72">
+<title>Deutschland Lernkarte – 16 Bundesländer</title>
+<style>
+:root{--blue:#123b72;--accent:#2f73d9;--bg:#f4f7fb;--line:#cfd7e2;--text:#17202a;--muted:#637080;--ok:#9bd6a6;--okline:#2d7b42;--orange:#f0a35b;--orangeLine:#b85b0b;--red:#e58b8b;--redLine:#a32626}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+header{background:var(--blue);color:#fff;padding:13px 16px;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:18px} header span{font-size:13px}
+main{max-width:1100px;margin:auto;padding:10px}
+.top{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:10px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px}
+.small{font-size:12px;color:var(--muted)} .target{font-size:27px;font-weight:800;margin-top:3px}
+.score{min-width:205px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center}
+.score strong{display:block;font-size:23px}
+.mapcard{background:#fff;border:1px solid var(--line);border-radius:15px;padding:5px;overflow:auto}
+svg{display:block;width:100%;min-width:760px;height:auto;background:#eef3f7;border-radius:10px}
+.state{fill:#e1e6ea;stroke:#59636e;stroke-width:.9;cursor:pointer;touch-action:manipulation}
+.state:hover{fill:#d2d9df}.state:focus{outline:none;stroke:#123b72;stroke-width:2.2}
+.state.done{fill:var(--ok);stroke:var(--okline);stroke-width:1.7;cursor:default}
+.state.wrong{fill:var(--orange);stroke:var(--orangeLine);stroke-width:2.3}
+.state.final-error{fill:var(--red);stroke:var(--redLine);stroke-width:2.2}
+.state-label{font-size:10px;font-weight:800;text-anchor:middle;pointer-events:none;fill:#111}
+.capital-label{font-size:8px;font-weight:650;text-anchor:middle;pointer-events:none;fill:#111}
+.capital-dot{fill:#1d4f91;stroke:#fff;stroke-width:1.5;pointer-events:none}
+.feedback{min-height:43px;padding:8px 2px;font-weight:750}
+.answers{background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px;margin-top:8px}
+.answers h3{margin:0 0 8px;font-size:15px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{min-height:46px;padding:9px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:15px;font-weight:700}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:disabled{opacity:.45}
+.answer.correct{background:#e8f5eb;border-color:#43a65b}
+.answer.incorrect{background:#f8e7e7;border-color:#b84b4b}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+.found,.errorbox{margin-top:9px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px}
+.found{display:flex;gap:6px;flex-wrap:wrap}
+.pill{background:#e8f5eb;border:1px solid #b7dfbf;border-radius:999px;padding:5px 8px;font-size:12px;font-weight:700}
+.errorbox h2{font-size:15px;margin:0 0 7px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 5px;border-bottom:1px solid #e5e8ec;text-align:left}
+th{font-size:11px;color:var(--muted);text-transform:uppercase}
+.wrongtxt{color:#a34d08;font-weight:700}
+.loading{padding:35px;text-align:center;color:var(--muted);font-weight:700}
+.source{font-size:11px;color:var(--muted);padding:8px 2px}
+@media(max-width:700px){.top{grid-template-columns:1fr}.score{text-align:left}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>Deutschland Lernkarte</h1><span id="progress">0 / 16</span></header>
+<main>
+<section class="top">
+<div class="card"><div class="small" id="mode">Schritt 1 · Bundesland geografisch finden</div><div class="target" id="target">Karte wird geladen …</div></div>
+<div class="card score">
+<div><span class="small">Richtige</span><strong id="correctCount">0</strong></div>
+<div><span class="small">Fehler</span><strong id="errorCount">0</strong></div>
+<div><span class="small">Gesamtpunkte</span><strong id="totalScore">0</strong></div>
+</div>
+</section>
+
+<div class="mapcard">
+<div id="loading" class="loading">Hochauflösende Deutschlandkarte wird geladen …</div>
+<svg id="map" viewBox="0 0 1000 650" aria-label="Interaktive Karte der 16 deutschen Bundesländer" style="display:none"></svg>
+</div>
+
+<div class="feedback" id="feedback"></div>
+
+<section class="answers" id="answers" hidden>
+<h3 id="answerTitle"></h3><div class="grid" id="answerGrid"></div>
+</section>
+
+<div class="controls">
+<button class="primary" id="next" disabled>Nächstes Bundesland</button>
+<button id="restart">Einheit neu starten</button>
+<button id="clear">Gespeicherten Fortschritt löschen</button>
+</div>
+
+<div class="found"><strong>Bereits gelernt:</strong><span id="foundList">–</span></div>
+
+<section class="errorbox">
+<h2>Fehlerübersicht</h2>
+<table><thead><tr><th>Gesuchtes Bundesland</th><th>Hauptstadt</th><th>Fehler</th></tr></thead>
+<tbody id="errorList"><tr><td colspan="3">Noch keine Fehler.</td></tr></tbody></table>
+</section>
+
+<div class="source">Kartendaten: DeutschlandGeoJSON, Bundesländer-Geometrie; Datenquelle GIS-DATA. Die Geometrie wird extern geladen und mit einer geografischen Mercator-Projektion dargestellt.</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script>
+const UNIT=[["Baden-Württemberg","Stuttgart"],["Bayern","München"],["Berlin","Berlin"],["Brandenburg","Potsdam"],["Bremen","Bremen"],["Hamburg","Hamburg"],["Hessen","Wiesbaden"],["Mecklenburg-Vorpommern","Schwerin"],["Niedersachsen","Hannover"],["Nordrhein-Westfalen","Düsseldorf"],["Rheinland-Pfalz","Mainz"],["Saarland","Saarbrücken"],["Sachsen","Dresden"],["Sachsen-Anhalt","Magdeburg"],["Schleswig-Holstein","Kiel"],["Thüringen","Erfurt"]];
+const MAP_URL="https://raw.githubusercontent.com/FlexPwr/DeutschlandGeoJSON/main/2_bundeslaender/2_hoch.geo.json";
+const MAP_FALLBACK_URL="https://raw.githubusercontent.com/FlexPwr/DeutschlandGeoJSON/main/2_bundeslaender/3_mittel.geo.json";
+const STORE="germanyLearning_16_v2";
+
+let queue=[],idx=0,correctCount=0,errorCount=0,totalScore=0;
+let phase="state",locked=false,mapReady=false,path=null,mapFeatures=[];
+let completed=new Set(),capitalDone=new Set(),errors=[],finalErrors=new Set();
+
+const $=id=>document.getElementById(id);
+
+function shuffle(a) {
+  for(let i=a.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function newQueue() { return shuffle(UNIT.map((_,i)=>i)); }
+function current() { return queue[idx]==null?null:UNIT[queue[idx]]; }
+
+function save() {
+  try {
+    localStorage.setItem(STORE,JSON.stringify({
+      queue,idx,correctCount,errorCount,totalScore,phase,
+      completed:[...completed],capitalDone:[...capitalDone],
+      errors,finalErrors:[...finalErrors]
+    }));
+  } catch(e) {}
+}
+
+function reset() {
+  queue=newQueue(); idx=0; correctCount=0; errorCount=0; totalScore=0;
+  phase="state"; locked=false; completed=new Set(); capitalDone=new Set();
+  errors=[]; finalErrors=new Set(); save();
+}
+
+function load() {
+  try {
+    const x=JSON.parse(localStorage.getItem(STORE)||"null");
+    if(x && Array.isArray(x.queue) && x.queue.length===16) {
+      queue=x.queue; idx=Math.min(Math.max(+x.idx||0,0),16);
+      correctCount=+x.correctCount||0; errorCount=+x.errorCount||0;
+      totalScore=+x.totalScore||0; phase=x.phase==="capital"?"capital":"state";
+      completed=new Set(x.completed||[]); capitalDone=new Set(x.capitalDone||[]);
+      errors=Array.isArray(x.errors)?x.errors:[]; finalErrors=new Set(x.finalErrors||[]);
+      return;
+    }
+  } catch(e) {}
+  reset();
+}
+
+function featureName(f) {
+  const p=f.properties||{};
+  const raw=p.SN_L || p.name || p.NAME || p.NAME_1 || p.GEN || "";
+  return String(raw).replace(/^\d+\s*:\s*/,"").trim();
+}
+
+function renderLabels() {
+  document.querySelectorAll(".state-label,.capital-label,.capital-dot").forEach(e=>e.remove());
+  document.querySelectorAll(".state").forEach(e=>{
+    e.classList.toggle("done",completed.has(e.dataset.name));
+    e.classList.toggle("final-error",finalErrors.has(e.dataset.name));
+  });
+
+  for(const [state,capital] of UNIT) {
+    if(!completed.has(state)) continue;
+    const f=mapFeatures.find(x=>featureName(x)===state);
+    if(!f) continue;
+    const [x,y]=path.centroid(f);
+
+    const t=document.createElementNS("http://www.w3.org/2000/svg","text");
+    t.setAttribute("x",x); t.setAttribute("y",y-3);
+    t.setAttribute("class","state-label"); t.textContent=state;
+    $("map").appendChild(t);
+
+    if(capitalDone.has(state)) {
+      const d=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      d.setAttribute("cx",x); d.setAttribute("cy",y+8); d.setAttribute("r",3.5);
+      d.setAttribute("class","capital-dot"); $("map").appendChild(d);
+
+      const q=document.createElementNS("http://www.w3.org/2000/svg","text");
+      q.setAttribute("x",x); q.setAttribute("y",y+20);
+      q.setAttribute("class","capital-label"); q.textContent=capital;
+      $("map").appendChild(q);
+    }
+  }
+}
+
+function renderErrors() {
+  $("errorList").innerHTML=errors.length
+    ? errors.map(e=>`<tr><td><strong>${e.state}</strong></td><td>${e.capital}</td><td class="wrongtxt">${e.type}</td></tr>`).join("")
+    : '<tr><td colspan="3">Noch keine Fehler.</td></tr>';
+}
+
+function renderFound() {
+  $("foundList").innerHTML=UNIT.filter(x=>completed.has(x[0]))
+    .map(x=>`<span class="pill">${x[0]}${capitalDone.has(x[0])?" – "+x[1]:" – Hauptstadt offen"}</span>`)
+    .join("") || "–";
+}
+
+function paint() {
+  $("correctCount").textContent=correctCount;
+  $("errorCount").textContent=errorCount;
+  $("totalScore").textContent=totalScore;
+  $("progress").textContent=Math.min(idx,16)+" / 16";
+
+  renderLabels(); renderFound(); renderErrors();
+  $("next").disabled=!(locked && phase==="capital");
+  $("answers").hidden=true;
+
+  const c=current();
+  if(!c) {
+    finalErrors=new Set(errors.map(e=>e.state));
+    renderLabels();
+    $("mode").textContent="Fertig – Fehleranalyse";
+    $("target").textContent="Lerneinheit abgeschlossen";
+    $("feedback").textContent=errors.length
+      ?"Fehlerhafte Bundesländer sind rot markiert."
+      :"Fehlerfreier Durchlauf – alle Bundesländer sind grün.";
+    save(); return;
+  }
+
+  if(phase==="state") {
+    $("mode").textContent="Schritt 1 · Bundesland geografisch finden";
+    $("target").textContent="Finde: "+c[0];
+    $("feedback").textContent="";
+  } else {
+    $("mode").textContent="Schritt 2 · Landeshauptstadt";
+    $("target").textContent="Hauptstadt von "+c[0]+"?";
+    $("answerTitle").textContent="Wähle die richtige Landeshauptstadt:";
+    $("answerGrid").innerHTML="";
+    $("answers").hidden=false;
+    makeAnswers();
+    $("feedback").textContent="Richtig! Jetzt die Hauptstadt auswählen.";
+  }
+  save();
+}
+
+function chooseState(el) {
+  if(!mapReady || phase!=="state" || locked || !current()) return;
+  const [state,capital]=current();
+
+  if(el.dataset.name===state) {
+    completed.add(state); correctCount++; totalScore++; phase="capital";
+    el.classList.add("done"); paint();
+  } else {
+    errorCount++; totalScore--;
+    errors.push({state,capital,type:"Bundesland falsch ausgewählt"});
+    el.classList.add("wrong");
+    $("feedback").textContent="Falsch. Das angeklickte Bundesland ist orange markiert.";
+    $("errorCount").textContent=errorCount; $("totalScore").textContent=totalScore;
+    renderErrors(); save();
+    setTimeout(()=>el.classList.remove("wrong"),900);
+  }
+}
+
+function makeAnswers() {
+  const [,correct]=current();
+  const options=shuffle([
+    correct,
+    ...UNIT.map(x=>x[1]).filter(x=>x!==correct).sort(()=>Math.random()-.5).slice(0,3)
+  ]);
+  options.forEach(option=>{
+    const b=document.createElement("button");
+    b.className="answer"; b.textContent=option;
+    b.addEventListener("click",()=>checkCapital(option,b));
+    $("answerGrid").appendChild(b);
+  });
+}
+
+function checkCapital(answer,button) {
+  if(phase!=="capital" || locked || !current()) return;
+  const [state,capital]=current();
+
+  if(answer===capital) {
+    correctCount++; totalScore++; capitalDone.add(state); locked=true;
+    document.querySelectorAll(".answer").forEach(x=>x.disabled=true);
+    button.classList.add("correct");
+    $("feedback").textContent="Richtig! "+capital+" bleibt auf der Karte sichtbar.";
+    paint(); $("next").disabled=false;
+  } else {
+    errorCount++; totalScore--;
+    errors.push({state,capital,type:"Landeshauptstadt falsch"});
+    button.classList.add("incorrect");
+    $("feedback").textContent="Falsch. Versuche es erneut.";
+    $("errorCount").textContent=errorCount; $("totalScore").textContent=totalScore;
+    renderErrors(); save();
+    setTimeout(()=>button.classList.remove("incorrect"),600);
+  }
+}
+
+async function loadGeoJSON(url){
+  const geo=await d3.json(url);
+  if(!geo || geo.type!=="FeatureCollection" || !Array.isArray(geo.features))
+    throw new Error("Ungültiges GeoJSON");
+  const features=geo.features.filter(f=>UNIT.some(x=>featureName(f)===x[0]));
+  if(features.length!==16) throw new Error("Nicht alle 16 Bundesländer gefunden");
+  return {type:"FeatureCollection",features};
+}
+
+async function initMap() {
+  try {
+    if(typeof d3==="undefined") throw new Error("D3 nicht geladen");
+
+    let geo;
+    try {
+      geo=await loadGeoJSON(MAP_URL);
+    } catch(e) {
+      geo=await loadGeoJSON(MAP_FALLBACK_URL);
+    }
+
+    mapFeatures=geo.features;
+
+    const svg=d3.select("#map");
+    const collection={type:"FeatureCollection",features:mapFeatures};
+
+    // Proper geographic projection for longitude/latitude GeoJSON.
+    path=d3.geoMercator().fitExtent([[25,20],[975,630]],collection);
+
+    svg.selectAll("path").remove();
+    svg.selectAll("path")
+      .data(mapFeatures)
+      .join("path")
+      .attr("class","state")
+      .attr("d",path)
+      .attr("data-name",featureName)
+      .attr("tabindex",0)
+      .attr("role","button")
+      .attr("aria-label",d=>featureName(d))
+      .on("click",function(){chooseState(this)})
+      .on("keydown",function(event){
+        if(event.key==="Enter"||event.key===" "){
+          event.preventDefault();
+          chooseState(this);
+        }
+      });
+
+    $("loading").style.display="none";
+    $("map").style.display="block";
+    mapReady=true;
+    paint();
+  } catch(e) {
+    console.error(e);
+    $("loading").textContent="Die Deutschlandkarte konnte nicht geladen werden. Bitte Internetverbindung prüfen und Seite neu laden.";
+  }
+}
+
+$("next").addEventListener("click",()=>{
+  if(!locked || phase!=="capital") return;
+  idx++; locked=false; phase="state"; paint();
+});
+$("restart").addEventListener("click",()=>{
+  if(confirm("Lerneinheit wirklich neu starten?")){reset();paint();}
+});
+$("clear").addEventListener("click",()=>{
+  if(confirm("Gespeicherten Fortschritt löschen?")){
+    try{localStorage.removeItem(STORE)}catch(e){}
+    reset(); paint();
+  }
+});
+
+load(); paint(); initMap();
+</script>
+</body>
+</html>
