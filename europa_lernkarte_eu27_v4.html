@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Europa Lernkarte – EU-27</title>
+<style>
+:root{--nav:#17324d;--ink:#17212b;--muted:#647384;--line:#cbd7e3;--bg:#eef5fa;--non:#e7ebef;--ok:#dff2df;--bad:#f8dddd}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg)}
+button{font:inherit}.app{max-width:1240px;margin:auto;padding:14px}.top{background:var(--nav);color:#fff;border-radius:14px;padding:16px 20px}.title{font-size:clamp(22px,3vw,34px);font-weight:800}.tools{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}.tools button{background:transparent;color:#fff;border:1px solid #ffffff66;border-radius:10px;padding:9px 14px;cursor:pointer}
+.grid{display:grid;grid-template-columns:1.4fr .8fr;gap:14px;margin-top:14px}.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px}.stats{display:grid;grid-template-columns:repeat(3,1fr);text-align:center}.stat b{display:block;font-size:28px}.label{color:var(--muted);font-size:14px}.prompt{font-size:26px;font-weight:800}
+.mapcard{grid-column:1/-1;padding:10px}.mapwrap{position:relative;height:min(74vh,760px);min-height:560px;background:#f5fbff;border:1px solid var(--line);border-radius:10px;overflow:hidden}.map{width:100%;height:100%;display:block}
+.country{fill:#fff;stroke:#74879a;stroke-width:.75;vector-effect:non-scaling-stroke;cursor:pointer}.country.non{fill:var(--non);cursor:default}.country:hover:not(.non){fill:#f5f7f9}.country.selected{fill:#dbe9f5;stroke:#17324d;stroke-width:1.6}.country.ok{fill:var(--ok)}.country.bad{fill:var(--bad)}
+.inset{position:absolute;bottom:14px;background:#fff;border:1px solid #9db6cc;border-radius:50%;width:108px;height:108px;display:flex;align-items:center;justify-content:center;flex-direction:column;font-weight:700;box-shadow:0 2px 8px #0001}.inset small{font-weight:500;color:#65717c}.inset button{position:absolute;inset:0;border:0;background:transparent;border-radius:50%;cursor:pointer}.malta{left:18px;bottom:18px}.cyprus{left:140px;bottom:18px}
+.side{position:absolute;right:14px;top:14px;width:200px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;max-height:calc(100% - 28px);overflow:auto}.side h3{margin:0 0 8px;color:#17324d}.legend{display:flex;gap:8px;align-items:center;font-size:13px;margin:6px 0}.sw{width:20px;height:20px;border:1px solid #8999a8;background:#fff}.sw.gray{background:var(--non)}.small{font-size:13px;color:var(--muted)}.error-item{padding:6px 0;border-bottom:1px solid #e5e9ed}
+.answers{grid-column:1/-1}.answers h3{margin:0 0 10px}.ans{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.ans button{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;text-align:left;cursor:pointer;min-height:64px}.ans button:disabled{cursor:default}.hint{margin-top:12px;background:#e5f0fa;border-radius:10px;padding:11px;color:#24506f}.footer{font-size:13px;color:var(--muted);padding:12px;text-align:center}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.side{position:static;width:auto;max-height:150px;margin:10px}.mapwrap{height:620px}.ans{grid-template-columns:repeat(2,1fr)}.inset{width:92px;height:92px}.cyprus{left:120px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div class="title">🌐 Europa Lernkarte – Länder & Hauptstädte</div>
+  <div class="tools"><button onclick="restart()">↻ Neustart</button><button onclick="clearProgress()">🗑 Fortschritt löschen</button><button onclick="showHelp()">? Hilfe</button></div>
+</header>
+<div class="grid">
+<section class="card"><div class="label">Schritt 1 · Land geografisch finden</div><div class="prompt" id="prompt">Lade Karte …</div></section>
+<section class="card stats"><div><span class="label">Richtige</span><b id="correct">0</b></div><div><span class="label">Fehler</span><b id="wrong">0</b></div><div><span class="label">Gesamtpunkte</span><b id="score">0 / 27</b></div></section>
+<section class="card mapcard">
+<div class="mapwrap">
+<svg id="map" class="map" viewBox="0 0 1100 700" preserveAspectRatio="xMidYMid meet"></svg>
+<div class="side">
+<h3>Legende</h3><div class="legend"><span class="sw"></span> EU-Mitgliedstaat (27)</div><div class="legend"><span class="sw gray"></span> Kein EU-Mitglied</div>
+<p class="small">Nicht-EU-Staaten dienen nur zur Orientierung und sind nicht anklickbar. Russland wird am rechten Kartenrand bewusst gekürzt.</p>
+<h3>Fehlerübersicht</h3><div id="errors" class="small">Noch keine Fehler.</div>
+</div>
+<div class="inset malta"><span>Malta</span><small>Valletta</small><button onclick="chooseInset('470')" aria-label="Malta"></button></div>
+<div class="inset cyprus"><span>Zypern</span><small>Nikosia</small><button onclick="chooseInset('196')" aria-label="Zypern"></button></div>
+</div></section>
+<section class="card answers"><h3>Schritt 2 · Wähle die Hauptstadt</h3><div class="small" id="answerHint">Klicke zuerst ein Land auf der Karte an.</div><div class="ans" id="answers"></div></section>
+</div>
+<div class="hint">ⓘ Klicke zuerst das gesuchte Land auf der Karte an. Anschließend wähle die richtige Hauptstadt aus den 4 Optionen.</div>
+<div class="footer">Tipp: Du kannst den Fortschritt jederzeit löschen und die Karte neu starten.</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js"></script>
+<script>
+const DATA_URL='https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json';
+const EU=new Set(['040','056','100','191','196','203','208','233','246','250','276','300','348','372','380','428','440','442','470','528','616','620','642','703','705','724','752']);
+const C={
+'040':['Österreich','Wien'],'056':['Belgien','Brüssel'],'100':['Bulgarien','Sofia'],'191':['Kroatien','Zagreb'],'196':['Zypern','Nikosia'],'203':['Tschechien','Prag'],'208':['Dänemark','Kopenhagen'],'233':['Estland','Tallinn'],'246':['Finnland','Helsinki'],'250':['Frankreich','Paris'],'276':['Deutschland','Berlin'],'300':['Griechenland','Athen'],'348':['Ungarn','Budapest'],'372':['Irland','Dublin'],'380':['Italien','Rom'],'428':['Lettland','Riga'],'440':['Litauen','Vilnius'],'442':['Luxemburg','Luxemburg'],'470':['Malta','Valletta'],'528':['Niederlande','Amsterdam'],'616':['Polen','Warschau'],'620':['Portugal','Lissabon'],'642':['Rumänien','Bukarest'],'703':['Slowakei','Bratislava'],'705':['Slowenien','Ljubljana'],'724':['Spanien','Madrid'],'752':['Schweden','Stockholm']
+};
+let current=null,selected=null,correct=0,wrong=0,errors=[];
+const svg=d3.select('#map');
+
+function cid(f){return String(f.id).padStart(3,'0')}
+function save(){localStorage.setItem('eu27_state',JSON.stringify({correct,wrong,errors}))}
+function load(){try{const s=JSON.parse(localStorage.getItem('eu27_state'));if(s){correct=s.correct||0;wrong=s.wrong||0;errors=s.errors||[]}}catch(e){}updateStats();renderErrors()}
+function updateStats(){document.querySelector('#correct').textContent=correct;document.querySelector('#wrong').textContent=wrong;document.querySelector('#score').textContent=correct+' / 27'}
+function renderErrors(){document.querySelector('#errors').innerHTML=errors.length?errors.map(e=>'<div class="error-item"><b>'+e.name+'</b> – '+e.cap+'</div>').join(''):'Noch keine Fehler.'}
+function pick(){const ids=[...EU];current=ids[Math.floor(Math.random()*ids.length)];document.querySelector('#prompt').innerHTML='Finde: <strong>'+C[current][0]+'</strong>';document.querySelector('#answerHint').textContent='Klicke zuerst ein Land auf der Karte an.';document.querySelector('#answers').innerHTML='';selected=null;svg.selectAll('.country').classed('selected',false)}
+function chooseInset(code){if(current===code)chooseCountry(code)}
+function chooseCountry(code){if(!current||!EU.has(code))return;selected=code;svg.selectAll('.country').classed('selected',d=>cid(d)===code);
+const cap=C[current][1],opts=[cap];const pool=Object.values(C).map(x=>x[1]).filter(x=>x!==cap);while(opts.length<4){const x=pool[Math.floor(Math.random()*pool.length)];if(!opts.includes(x))opts.push(x)}opts.sort(()=>Math.random()-.5);
+document.querySelector('#answerHint').textContent='Du hast '+C[code][0]+' gewählt. Welche Hauptstadt gehört dazu?';
+document.querySelector('#answers').innerHTML=opts.map((x,i)=>'<button onclick="answer('+JSON.stringify(x)+')"><b>'+('ABCD'[i])+'</b> · '+x+'</button>').join('')}
+function answer(x){if(!selected)return;const cap=C[current][1],name=C[current][0];document.querySelectorAll('#answers button').forEach(b=>b.disabled=true);
+if(x===cap){correct++;svg.selectAll('.country').filter(d=>cid(d)===current).classed('ok',true);setTimeout(()=>pick(),650)}
+else{wrong++;errors.push({name,cap});svg.selectAll('.country').filter(d=>cid(d)===current).classed('bad',true);setTimeout(()=>svg.selectAll('.country').classed('bad',false),700);setTimeout(()=>pick(),800)}
+updateStats();renderErrors();save()}
+function restart(){correct=0;wrong=0;errors=[];save();updateStats();renderErrors();pick()}
+function clearProgress(){if(confirm('Gesamten Lernfortschritt löschen?'))restart()}
+function showHelp(){alert('1. Suche das genannte EU-Land auf der Karte.\\n2. Klicke es an.\\n3. Wähle die richtige Hauptstadt.\\n\\nGraue Länder sind keine EU-Mitglieder und dienen nur zur Orientierung.')}
+
+
+function draw(world){
+  const all=topojson.feature(world,world.objects.countries).features;
+  /*
+    Deliberately use a fixed Europe-focused viewport rather than fitExtent().
+    fitExtent() was allowing the very large eastern countries to determine the
+    scale, which made Europe appear tiny. Russia is retained only as a grey
+    orientation country and is intentionally clipped at the right edge.
+  */
+  const ORIENTATION=new Set([
+    '008','031','040','051','070','112','191','203','208','233','246','268',
+    '300','352','376','380','383','392','398','404','417','428','438','440',
+    '492','499','498','528','578','620','642','643','688','703','705','724',
+    '752','756','792','795','804','807','826'
+  ]);
+  const visible=all.filter(f=>ORIENTATION.has(cid(f)) || EU.has(cid(f)));
+  const projection=d3.geoNaturalEarth1()
+    .center([15,53])
+    .scale(900)
+    .translate([540,365]);
+  const path=d3.geoPath(projection);
+
+  svg.append('g')
+    .selectAll('path')
+    .data(visible)
+    .join('path')
+    .attr('class',d=>'country '+(EU.has(cid(d))?'':'non'))
+    .attr('d',path)
+    .on('click',(e,d)=>{if(EU.has(cid(d)))chooseCountry(cid(d))});
+
+  load();
+  pick();
+}
+fetch(DATA_URL).then(r=>r.json()).then(draw).catch(()=>document.querySelector('#prompt').textContent='Karte konnte nicht geladen werden. Bitte Internetverbindung prüfen.');
+</script>
+</body></html>
